@@ -12,7 +12,7 @@ import javax.ws.rs.core.Application;
  *
  * @author cubap
  */
-@javax.ws.rs.ApplicationPath("notification")
+@javax.ws.rs.ApplicationPath("") // no additional root path at inbox.rerum.io
 public class ApplicationConfig extends Application {
 
     @Override
@@ -30,6 +30,7 @@ public class ApplicationConfig extends Application {
      */
     private void addRestResourceClasses(Set<Class<?>> resources) {
         resources.add(io.rerum.messages.Message.class);
+        resources.add(io.rerum.messages.MessagesResource.class);
     }
     
 }
