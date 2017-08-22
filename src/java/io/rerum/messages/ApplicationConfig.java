@@ -12,7 +12,7 @@ import javax.ws.rs.core.Application;
  *
  * @author cubap
  */
-@javax.ws.rs.ApplicationPath("") // no additional root path at inbox.rerum.io
+@javax.ws.rs.ApplicationPath("/") // no additional root path at inbox.rerum.io
 public class ApplicationConfig extends Application {
 
     @Override
