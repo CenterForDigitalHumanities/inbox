@@ -5,16 +5,20 @@
  */
 package io.rerum.messages;
 
+import java.net.URI;
 import java.util.Set;
+import javax.ws.rs.Produces;
 import javax.ws.rs.core.Application;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
 
 /**
  *
  * @author cubap
  */
-@javax.ws.rs.ApplicationPath("/") // no additional root path at inbox.rerum.io
+@javax.ws.rs.ApplicationPath("")
 public class ApplicationConfig extends Application {
-
+    
     @Override
     public Set<Class<?>> getClasses() {
         Set<Class<?>> resources = new java.util.HashSet<>();

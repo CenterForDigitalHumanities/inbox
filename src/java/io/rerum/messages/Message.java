@@ -29,6 +29,8 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.Map;
 import java.util.function.Consumer;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.json.JsonValue;
 
 //import net.sf.json.JSONObject;
@@ -100,36 +102,7 @@ public class Message {
         // TODO: PUT content
         return content;
     }
-
-    @POST
-    @Consumes(javax.ws.rs.core.MediaType.APPLICATION_JSON)
-    public String postJson(String content) {
-        JsonObject annoucement;
-        try (JsonReader reader = Json.createReader(new StringReader(content))) {
-            annoucement = reader.readObject();
-        }
-        // Simple check for parts
-        // ERRORS
-        if (annoucement.getJsonString("@id").toString().length() > 0) {
-            // There should not be one already; these are new annoucements.
-            Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity("POST is for new annoucements only.").build();
-            return "{\"error\":\"Property '@id' indicates this is not a new annoucement.\"}";
-        }
-        if (annoucement.getJsonString("motivation").toString().length() > 0) {
-            // This should always exist.
-            Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity("Missing 'motivation' property.").build();
-            return "{\"error\":\"Annoucements without 'motivation' are not allowed on this server.\"}";
-        }
-
-        //NORMALIZATIONS       
-        if (annoucement.getJsonString("@context").toString().length() > 0) {
-            // Put in a default, please.
-            annoucement = new Message().generate(annoucement, "@context", CONTEXT);
-        }
-
-        return annoucement.toString();
-    }
-
+   
     private JsonObject getMessage() throws Exception {
         URL noteUrl = new URL("https://rerum-inbox.firebaseio.com/messages/" + noteId + ".json");
         HttpURLConnection conn = (HttpURLConnection) noteUrl.openConnection();
