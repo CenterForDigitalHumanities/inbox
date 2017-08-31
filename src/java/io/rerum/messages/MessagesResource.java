@@ -16,6 +16,7 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.Date;
 import javax.json.Json;
 import javax.json.JsonArray;
 import javax.json.JsonArrayBuilder;
@@ -71,7 +72,9 @@ public class MessagesResource {
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     public String getJson() throws Exception {
-        return getMessages();
+        
+        JsonObject messages = getMessages();
+        return messages.toString();
     }
 
     /**
@@ -118,7 +121,9 @@ public class MessagesResource {
         }
         
         // add timestamp
-        
+        Date time = new Date();
+            announcement = new Message().generate(announcement, "published", time.toString());
+
         try {
             announcement = postMessage(announcement);
         } catch (Exception ex) {
@@ -165,7 +170,7 @@ conn.setDoInput(true);
             return Response.status(HttpURLConnection.HTTP_BAD_METHOD).entity("DELETE is not implemented for this inbox.").build();
     }
        
-    private String getMessages() throws Exception {
+    private JsonObject getMessages() throws Exception {
     URL noteUrl = new URL("https://rerum-inbox.firebaseio.com/messages.json"+buildQuery());
     HttpURLConnection conn = (HttpURLConnection) noteUrl.openConnection();
     InputStreamReader isr = new InputStreamReader(conn.getInputStream(),"UTF-8");
@@ -195,15 +200,14 @@ conn.setDoInput(true);
             return messages;
  }
     
-    private String formatList(JsonArray arr){
-        // TODO: The Json step here is probably unnecessary
-        String response = "";
+    private JsonObject formatList(JsonArray arr){
+        JsonObject response;
         JsonObjectBuilder b = Json.createObjectBuilder();
         b.add("@context", CONTEXT);
         b.add("@type", TYPE);
         b.add("@id", ID_ROOT+"?target="+TARGET);
         b.add("contains",arr);
-        response = b.build().toString();
+        response = b.build();
         return response;
     }
     
