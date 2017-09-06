@@ -82,8 +82,7 @@ public class Message {
      * @throws java.lang.Exception
      */
     @GET
-
-    @Produces(javax.ws.rs.core.MediaType.APPLICATION_JSON)
+    @Produces("application/ld+json,"+javax.ws.rs.core.MediaType.APPLICATION_JSON)
     public String getJson() throws Exception {
 
         JsonObject note = getMessage();

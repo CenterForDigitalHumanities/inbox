@@ -13,6 +13,7 @@ import java.io.OutputStreamWriter;
 import java.io.StringReader;
 import java.math.BigDecimal;
 import java.net.HttpURLConnection;
+import java.net.URI;
 import java.net.URL;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -37,6 +38,9 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Request;
 import javax.ws.rs.core.Response;
+import com.github.jsonldjava.core;
+import com.github.jsonldjava.core.JsonLdOptions;
+import com.github.jsonldjava.core.JsonLdProcessor;
 
 /**
  * REST Web Service
@@ -70,7 +74,7 @@ public class MessagesResource {
      * @throws java.lang.Exception
      */
     @GET
-    @Produces(MediaType.APPLICATION_JSON)
+    @Produces("application/ld+json,"+MediaType.APPLICATION_JSON)
     public String getJson() throws Exception {
         
         JsonObject messages = getMessages();
@@ -93,10 +97,17 @@ public class MessagesResource {
      * @return
      */
     @POST
-    @Consumes(javax.ws.rs.core.MediaType.APPLICATION_JSON)
-    @Produces(javax.ws.rs.core.MediaType.APPLICATION_JSON)
-    public String postJson(String content) {
+    @Consumes("application/ld+json,"+javax.ws.rs.core.MediaType.APPLICATION_JSON)
+    @Produces("application/ld+json")
+//    @Produces("application/ld+json,"+javax.ws.rs.core.MediaType.TEXT_PLAIN)
+    public Response postJson(String content) {
         JsonObject announcement;
+        Response res;
+//        @TODO: Need a body writer for JSON-LD
+//        try {
+//            JsonLdProcessor.
+//            JsonLdOptions options = new JsonLdOptions();
+//        }
         try (JsonReader reader = Json.createReader(new StringReader(content))) {
             announcement = reader.readObject();
         }
@@ -105,13 +116,13 @@ public class MessagesResource {
         // ERRORS
         if (announcement.containsKey("@id")) {
             // There should not be one already; these are new annoucements.
-            Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity("POST is for new annoucements only.").build();
-            return "{\"error\":\"Property '@id' indicates this is not a new annoucement.\"}";
+            res = Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity("POST is for new annoucements only.").build();
+            return res;
         }
         if (!announcement.containsKey("motivation")) {
             // This should always exist.
-            Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity("Missing 'motivation' property.").build();
-            return "{\"error\":\"Annoucements without 'motivation' are not allowed on this server.\"}";
+            res = Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity("Missing 'motivation' property.").build();
+            return res;
         }
 
         //NORMALIZATIONS       
@@ -129,7 +140,10 @@ public class MessagesResource {
         } catch (Exception ex) {
             Logger.getLogger(Message.class.getName()).log(Level.SEVERE, null, ex);
         }
-        return announcement.toString();
+        // URI loc = URI.create("http://inbox.rerum.io/id/"+announcement.getJsonString("name").toString());
+        URI loc = URI.create("http://inbox.rerum.io/id/"+announcement.getJsonString("name").toString().replaceAll("\"",""));
+        res=Response.created(loc).entity(announcement).header("Content-Type", "application/ld+json").build();
+        return res;
     }
 
     private JsonObject postMessage(JsonObject content) throws Exception {
@@ -137,8 +151,8 @@ public class MessagesResource {
         HttpURLConnection conn = (HttpURLConnection) noteUrl.openConnection();
         conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
         
-conn.setDoOutput(true);
-conn.setDoInput(true);
+        conn.setDoOutput(true);
+        conn.setDoInput(true);
         OutputStreamWriter wr = new OutputStreamWriter(conn.getOutputStream());
         wr.write(content.toString());
         wr.close();
@@ -155,7 +169,7 @@ conn.setDoInput(true);
         } 
         JsonReader reader = Json.createReader(new StringReader(response.toString()));
         JsonObject source = reader.readObject();
-        Logger.getLogger(Message.class.getName()).log(Level.INFO, "Created: "+source.getJsonString("name").toString());
+        Logger.getLogger(Message.class.getName()).log(Level.INFO, "Created: {0}", source.getJsonString("name").toString());
         reader.close();
         return source;
     }
