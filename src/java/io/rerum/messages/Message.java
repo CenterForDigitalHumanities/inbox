@@ -17,27 +17,14 @@ import javax.json.JsonObject;
 import javax.json.Json;
 import javax.json.JsonReader;
 import javax.json.JsonObjectBuilder;
-import javax.json.JsonArray;
-import javax.json.stream.JsonParser;
 
 import java.io.BufferedReader;
-import java.io.DataOutputStream;
 import java.io.InputStreamReader;
 import java.io.StringReader;
-import java.math.BigDecimal;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.Map;
-import java.util.function.Consumer;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import javax.json.JsonValue;
-
-//import net.sf.json.JSONObject;
-//import net.sf.json.JSONArray;
-import javax.net.ssl.HttpsURLConnection;
-import javax.ws.rs.POST;
-import javax.ws.rs.core.Response;
 
 /**
  * REST Web Service
@@ -116,7 +103,7 @@ public class Message {
             }
         }
         System.out.println(response.toString() + " | https://rerum-inbox.firebaseio.com/messages/" + noteId + ".json");
-        if (response.toString().isEmpty()) { // No dice... this still let's null through.
+        if (response.toString().isEmpty()) { // No dice... this still lets null through.
             throw new Exception("No message found");
         }
         JsonObject note;
