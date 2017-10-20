@@ -17,12 +17,14 @@ import java.net.URL;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.Date;
+import java.util.Map;
 import javax.json.Json;
 import javax.json.JsonArray;
 import javax.json.JsonArrayBuilder;
 import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
 import javax.json.JsonReader;
+import javax.json.JsonValue;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.UriInfo;
@@ -45,16 +47,23 @@ import javax.ws.rs.core.Response;
  */
 @Path("messages")
 public class MessagesResource {
-    
+
     private final String CONTEXT = "http://www.w3.org/ns/ldp";
     private final String ID_ROOT = "http://inbox.rerum.io/messages";
     private final String TYPE = "ldp:Container";
 
-    @DefaultValue("") @QueryParam("target") String TARGET;
-    @DefaultValue("") @QueryParam("type") String Q_TYPE;
-    @DefaultValue("") @QueryParam("motivation") String MOTIVATION;
-    
-    @Context Request request;
+    @DefaultValue("")
+    @QueryParam("target")
+    String TARGET;
+    @DefaultValue("")
+    @QueryParam("type")
+    String Q_TYPE;
+    @DefaultValue("")
+    @QueryParam("motivation")
+    String MOTIVATION;
+
+    @Context
+    Request request;
     @Context
     private UriInfo context;
 
@@ -65,28 +74,31 @@ public class MessagesResource {
     }
 
     /**
-     * Retrieves representation of an instance of io.rerum.messages.MessagesResource
+     * Retrieves representation of an instance of
+     * io.rerum.messages.MessagesResource
+     *
      * @return an instance of java.lang.String
      * @throws java.lang.Exception
      */
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     public String getJson() throws Exception {
-        
+
         JsonObject messages = getMessages();
         return messages.toString();
     }
 
     /**
      * PUT method for updating or creating an instance of MessagesResource
-     * @return 
+     *
+     * @return
      */
     @PUT
     @Consumes(MediaType.TEXT_PLAIN)
     public Response putPending() {
         return Response.status(HttpURLConnection.HTTP_BAD_METHOD).entity("PUT is not implemented for this inbox.").build();
     }
-    
+
     /**
      *
      * @param content
@@ -101,7 +113,7 @@ public class MessagesResource {
             announcement = reader.readObject();
         }
         // Simple check for parts
-            Logger.getLogger(Message.class.getName()).log(Level.INFO, announcement.toString());
+        Logger.getLogger(Message.class.getName()).log(Level.INFO, announcement.toString());
         // ERRORS
         if (announcement.containsKey("@id")) {
             // There should not be one already; these are new annoucements.
@@ -119,10 +131,10 @@ public class MessagesResource {
             // Put in a default, please.
             announcement = new Message().generate(announcement, "@context", CONTEXT);
         }
-        
+
         // add timestamp
         Date time = new Date();
-            announcement = new Message().generate(announcement, "published", time.toString());
+        announcement = new Message().generate(announcement, "published", time.toString());
 
         try {
             announcement = postMessage(announcement);
@@ -136,13 +148,13 @@ public class MessagesResource {
         URL noteUrl = new URL("https://rerum-inbox.firebaseio.com/messages.json");
         HttpURLConnection conn = (HttpURLConnection) noteUrl.openConnection();
         conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
-        
-conn.setDoOutput(true);
-conn.setDoInput(true);
+
+        conn.setDoOutput(true);
+        conn.setDoInput(true);
         OutputStreamWriter wr = new OutputStreamWriter(conn.getOutputStream());
         wr.write(content.toString());
         wr.close();
-        
+
         StringBuilder response;
         try (BufferedReader in = new BufferedReader(
                 new InputStreamReader(conn.getInputStream()))) {
@@ -152,14 +164,14 @@ conn.setDoInput(true);
                 response.append(inputLine);
             }
             in.close();
-        } 
+        }
         JsonReader reader = Json.createReader(new StringReader(response.toString()));
         JsonObject source = reader.readObject();
-        Logger.getLogger(Message.class.getName()).log(Level.INFO, "Created: "+source.getJsonString("name").toString());
+        Logger.getLogger(Message.class.getName()).log(Level.INFO, "Created: " + source.getJsonString("name").toString());
         reader.close();
         return source;
     }
-    
+
     /**
      *
      * @return
@@ -167,65 +179,78 @@ conn.setDoInput(true);
     @DELETE
     @Consumes(MediaType.TEXT_PLAIN)
     public Response deletePending() {
-            return Response.status(HttpURLConnection.HTTP_BAD_METHOD).entity("DELETE is not implemented for this inbox.").build();
+        return Response.status(HttpURLConnection.HTTP_BAD_METHOD).entity("DELETE is not implemented for this inbox.").build();
     }
-       
+
     private JsonObject getMessages() throws Exception {
-    URL noteUrl = new URL("https://rerum-inbox.firebaseio.com/messages.json"+buildQuery());
-    HttpURLConnection conn = (HttpURLConnection) noteUrl.openConnection();
-    InputStreamReader isr = new InputStreamReader(conn.getInputStream(),"UTF-8");
-    JsonReader reader = Json.createReader(isr);
-    JsonArray messages = readMessages(reader);
-    return formatList(messages);
+        URL noteUrl = new URL("https://rerum-inbox.firebaseio.com/messages.json" + buildQuery());
+        HttpURLConnection conn = (HttpURLConnection) noteUrl.openConnection();
+        InputStreamReader isr = new InputStreamReader(conn.getInputStream(), "UTF-8");
+        JsonReader reader = Json.createReader(isr);
+        JsonArray messages = readMessages(reader);
+        return formatList(messages);
     }
-        
+
     private JsonArray readMessages(JsonReader reader) throws Exception {
-            JsonArrayBuilder b = Json.createArrayBuilder();
-            JsonObject obj;
-                    try{
+        JsonArrayBuilder b = Json.createArrayBuilder();
+        JsonObject obj;
+        try {
             obj = reader.readObject();
-            } finally {
-                reader.close();
+        } finally {
+            reader.close();
+        }
+
+        for (Map.Entry<String, JsonValue> entry : obj.entrySet()) {
+            String key = entry.getKey();
+            JsonValue value = entry.getValue();
+            Message msg = new Message();
+            JsonObject m;
+            m = msg.generate(value.toString(), "@id", "http://inbox.rerum.io/id/" + key + "");
+            if (MOTIVATION.length() == 0 || MOTIVATION.contains(m.getJsonString("motivation").toString())) {
+                b.add(m);
             }
-            obj.entrySet().forEach(e -> 
-            {
-                Message msg=new Message();
-                JsonObject m;
-                m = msg.generate(e.getValue().toString(), "@id", "http://inbox.rerum.io/id/" + e.getKey() + "");
-                if(MOTIVATION.length()==0 || MOTIVATION.contains(m.getJsonString("motivation").toString())){
-                    b.add(m);
-                }
-                });
-            JsonArray messages = b.build();
-            return messages;
- }
-    
-    private JsonObject formatList(JsonArray arr){
+
+        }
+
+//            obj.entrySet().forEach(e -> 
+//            {
+//                Message msg=new Message();
+//                JsonObject m;
+//                m = msg.generate(e.getValue().toString(), "@id", "http://inbox.rerum.io/id/" + e.getKey() + "");
+//                if(MOTIVATION.length()==0 || MOTIVATION.contains(m.getJsonString("motivation").toString())){
+//                    b.add(m);
+//                }
+//                });
+        JsonArray messages = b.build();
+        return messages;
+    }
+
+    private JsonObject formatList(JsonArray arr) {
         JsonObject response;
         JsonObjectBuilder b = Json.createObjectBuilder();
         b.add("@context", CONTEXT);
         b.add("@type", TYPE);
-        b.add("@id", ID_ROOT+"?target="+TARGET);
-        b.add("contains",arr);
+        b.add("@id", ID_ROOT + "?target=" + TARGET);
+        b.add("contains", arr);
         response = b.build();
         return response;
     }
-    
-    private String buildQuery(){
+
+    private String buildQuery() {
         String q = "";
-        if(!TARGET.isEmpty() || !Q_TYPE.isEmpty() || !MOTIVATION.isEmpty()){
+        if (!TARGET.isEmpty() || !Q_TYPE.isEmpty() || !MOTIVATION.isEmpty()) {
             q = "?";
         }
-        if(Q_TYPE.length()>0){
-            System.out.println("Type length:"+Q_TYPE.length());
+        if (Q_TYPE.length() > 0) {
+            System.out.println("Type length:" + Q_TYPE.length());
             // What the hell, !.isEmpty() with String.length() == 0 is succeeding?
-            q = q+"orderBy=\"type\"&equalTo=\""+Q_TYPE+"\"";
+            q = q + "orderBy=\"type\"&equalTo=\"" + Q_TYPE + "\"";
         }
 //        if(MOTIVATION.length()>0){
 //            q = q+"&equalTo=\""+MOTIVATION+"\"";
 //        }
-        if(TARGET.length()>0){
-            q = q+"orderBy=\"target\"&equalTo=\""+TARGET+"\"";
+        if (TARGET.length() > 0) {
+            q = q + "orderBy=\"target\"&equalTo=\"" + TARGET + "\"";
         }
         return q;
     }

@@ -28,6 +28,7 @@ import java.math.BigDecimal;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Consumer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -153,10 +154,18 @@ public class Message {
     public JsonObject generate(JsonObject source, String key, String value) {
         JsonObjectBuilder builder = Json.createObjectBuilder();
         builder.add(key, value);
-        source.entrySet().
-                forEach((Map.Entry<String, JsonValue> e) -> {
-                    builder.add(e.getKey(), e.getValue());
-                });
+        
+        for (Map.Entry<String, JsonValue> entry : source.entrySet()) {
+            String key1 = entry.getKey();
+            JsonValue value1 = entry.getValue();
+            builder.add(key1,value1);
+        }
+        
+//        source.entrySet().
+//                forEach((Map.Entry<String, JsonValue> e) -> {
+//                    builder.add(e.getKey(), e.getValue());
+//                });
+        
         return builder.build();
     }
 }
