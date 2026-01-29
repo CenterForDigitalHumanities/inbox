@@ -98,13 +98,16 @@ app.post('/messages', async (req, res) => {
             announcement['@context'] = CONTEXT;
         }
         
-        // Add timestamp
-        announcement.published = new Date().toISOString();
+        // Add timestamp (using toString() for Java compatibility)
+        announcement.published = new Date().toString();
         
         // Post to Firebase
         const response = await axios.post(`${FIREBASE_URL}.json`, announcement);
         
         // Firebase returns { "name": "generated-key" }
+        if (!response.data || !response.data.name) {
+            throw new Error('Invalid Firebase response');
+        }
         const firebaseKey = response.data.name;
         
         // Return the created announcement with @id

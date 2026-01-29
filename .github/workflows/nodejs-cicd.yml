@@ -6,9 +6,15 @@ on:
   pull_request:
     branches: [ main, master ]
 
+permissions:
+  contents: read
+
 jobs:
   build:
     runs-on: ubuntu-latest
+    
+    permissions:
+      contents: read
 
     strategy:
       matrix:
@@ -33,6 +39,9 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+    
+    permissions:
+      contents: read
     
     steps:
     - uses: actions/checkout@v4
@@ -61,4 +70,7 @@ jobs:
           ./ $SSH_USER@$SSH_HOST:$DEPLOY_PATH/
         
         # Install dependencies and restart service
-        ssh $SSH_USER@$SSH_HOST "cd $DEPLOY_PATH && npm ci --production && pm2 restart inbox || pm2 start server.js --name inbox"
+        ssh $SSH_USER@$SSH_HOST "cd $DEPLOY_PATH && npm ci --production && (pm2 describe inbox > /dev/null 2>&1 && pm2 restart inbox || pm2 start server.js --name inbox)"
+        
+        # Cleanup SSH key
+        rm -f ~/.ssh/id_rsa
