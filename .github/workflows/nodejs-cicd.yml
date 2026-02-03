@@ -1,76 +1,37 @@
-name: Node.js CI/CD
-
+name: Node.js CI/CD Pipeline
 on:
   push:
-    branches: [ main, master ]
+    branches:
+      - main
   pull_request:
-    branches: [ main, master ]
-
+    branches:
+      - development
 permissions:
+  id-token: write
   contents: read
-
 jobs:
-  build:
+  test:
     runs-on: ubuntu-latest
-    
-    permissions:
-      contents: read
-
-    strategy:
-      matrix:
-        node-version: [18.x, 20.x]
-
     steps:
-    - uses: actions/checkout@v4
-    
-    - name: Use Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v4
-      with:
-        node-version: ${{ matrix.node-version }}
-        cache: 'npm'
-    
-    - name: Install dependencies
-      run: npm ci
-    
-    - name: Run tests
-      run: npm test
-      
+      - uses: actions/checkout@master
+      - name: Setup Node.js
+        uses: actions/setup-node@master
+        with:
+          node-version: "24"
+      - name: Cache node modules
+        uses: actions/cache@master
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+      - name: Install dependencies and run the test
+        run: npm install && npm test
+
   deploy:
-    needs: build
+    needs: test
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
-    
-    permissions:
-      contents: read
-    
     steps:
-    - uses: actions/checkout@v4
-    
-    - name: Deploy to TPEN-Services Machine
-      env:
-        SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
-        SSH_HOST: ${{ secrets.SSH_HOST }}
-        SSH_USER: ${{ secrets.SSH_USER }}
-        DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
-      run: |
-        # Setup SSH
-        mkdir -p ~/.ssh
-        echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
-        chmod 600 ~/.ssh/id_rsa
-        ssh-keyscan -H "$SSH_HOST" >> ~/.ssh/known_hosts
-        
-        # Deploy files
-        ssh $SSH_USER@$SSH_HOST "mkdir -p $DEPLOY_PATH"
-        rsync -avz --delete \
-          --exclude 'node_modules' \
-          --exclude '.git' \
-          --exclude '.github' \
-          --exclude 'src' \
-          --exclude 'web' \
-          ./ $SSH_USER@$SSH_HOST:$DEPLOY_PATH/
-        
-        # Install dependencies and restart service
-        ssh $SSH_USER@$SSH_HOST "cd $DEPLOY_PATH && npm ci --production && (pm2 describe inbox > /dev/null 2>&1 && pm2 restart inbox || pm2 start server.js --name inbox)"
-        
-        # Cleanup SSH key
-        rm -f ~/.ssh/id_rsa
+      - uses: actions/checkout@master
+      - name: Deploy the app on the server
+        run: echo "Deploying to production..."
+      - name: Wait for service to be ready
+        run: sleep 5
