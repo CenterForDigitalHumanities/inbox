@@ -13,13 +13,13 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@master
+      - uses: actions/checkout@main
       - name: Setup Node.js
-        uses: actions/setup-node@master
+        uses: actions/setup-node@main
         with:
           node-version: "24"
       - name: Cache node modules
-        uses: actions/cache@master
+        uses: actions/cache@main
         with:
           path: ~/.npm
           key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
@@ -30,7 +30,7 @@ jobs:
     needs: test
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@master
+      - uses: actions/checkout@main
       - name: Deploy the app on the server
         run: echo "Deploying to production..."
       - name: Wait for service to be ready
