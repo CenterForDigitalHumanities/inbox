@@ -18,6 +18,12 @@ The growing list of implementations and uses cases exposed the need for a well-d
 ### Primary Purpose
 As a service of OngCDH, the Rerum Inbox is committed to providing a free and public location for important announcements about scholarly resources. This offers a service to individuals and institutions without the financial or technical means to host their own inbox and creates a path for interaction with the vast holdings on the Internet that are otherwise inaccessible. By generating new inboxes dynamically, Rerum Inbox immediately and universally opens the resources used by the scholarly community to the contributions of the scholars it comprises.
 
+### LDN Compliance
+This inbox is compliant with the [Linked Data Notifications (LDN)](https://www.w3.org/TR/ldn/) specification:
+- Accepts both `application/json` and `application/ld+json` content types for POST requests
+- Returns `application/ld+json` content type for all responses
+- Supports JSON-LD data structures with `@context`, `@id`, and `@type` properties
+
 ## API Endpoints
 
 ### GET /messages
@@ -41,6 +47,10 @@ List all messages with optional filtering.
 ### POST /messages
 Create a new announcement.
 
+**Supported Content-Types:**
+- `application/json`
+- `application/ld+json` (for LDN compliance)
+
 **Request Body:**
 ```json
 {
@@ -56,6 +66,7 @@ Create a new announcement.
 ```
 
 **Response:**
+Returns `application/ld+json` content type.
 ```json
 {
   "@id": "http://inbox.rerum.io/id/{generated-id}",
