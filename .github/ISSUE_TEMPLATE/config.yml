@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Documentation
+    url: https://centerfordigitalhumanities.github.io/inbox-docs/
+    about: Read the documentation for more information about LDN Inboxes in IIIF
+  - name: IIIF Community
+    url: https://iiif.io/community/
+    about: Connect with the IIIF community for broader discussions
