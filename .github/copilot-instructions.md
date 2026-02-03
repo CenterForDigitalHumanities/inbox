@@ -198,7 +198,7 @@ kill %1  # Stop the background server
 
 ## Branching Strategy
 
-- `master` - Main/production branch
+- `main` - Main/production branch
 - `development` - Development branch for feature work
 - Feature branches - Branch from `development` for new work
 
