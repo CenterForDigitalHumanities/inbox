@@ -45,7 +45,7 @@ List all messages with optional filtering, pagination, and date constraints.
   - Default: 20 (no parameters)
   - Default: 100 (when `target` is specified)
   - Can be combined with `skip` for pagination
-- `skip` - Number of messages to skip (requires `limit` for pagination)
+- `skip` - Number of messages to skip for pagination (works with explicit or default limit)
 
 **Sorting:**
 All results are sorted by `published` date, most recent first.

@@ -164,7 +164,7 @@ app.get('/messages', async (req, res) => {
 
         // Determine skip value
         let skipValue = 0
-        if (skip && limit) {
+        if (skip) {
             skipValue = parseInt(skip, 10)
             if (isNaN(skipValue) || skipValue < 0) {
                 skipValue = 0
