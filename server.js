@@ -61,6 +61,16 @@ async function checkRateLimit(req, res, next) {
         const now = new Date()
         const windowStart = new Date(now.getTime() - RATE_LIMIT_WINDOW_MS)
 
+        // Find the oldest request from this IP in the current window
+        const oldestRequest = await messagesCollection
+            .find({
+                '__inbox.ip': clientIp,
+                '__inbox.timestamp': { $gte: windowStart }
+            })
+            .sort({ '__inbox.timestamp': 1 })
+            .limit(1)
+            .toArray()
+
         // Count requests from this IP in the last hour
         const requestCount = await messagesCollection.countDocuments({
             '__inbox.ip': clientIp,
@@ -68,9 +78,13 @@ async function checkRateLimit(req, res, next) {
         })
 
         if (requestCount >= RATE_LIMIT_MAX_REQUESTS) {
+            // Calculate when the oldest request will expire from the window
+            const oldestTimestamp = oldestRequest[0]?.__inbox?.timestamp || windowStart
+            const retryAfter = Math.ceil((oldestTimestamp.getTime() + RATE_LIMIT_WINDOW_MS - now.getTime()) / 1000)
+            
             return res.status(429).json({
                 error: 'Rate limit exceeded. Please try again later.',
-                retryAfter: Math.ceil(RATE_LIMIT_WINDOW_MS / 1000) // seconds
+                retryAfter: Math.max(retryAfter, 1) // Ensure at least 1 second
             })
         }
 

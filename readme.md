@@ -131,7 +131,7 @@ To ensure the Inbox remains a service for human-initiated scholarly contribution
 ### Rate Limiting
 - **Limit:** 10 POST requests per hour per IP address
 - **Status:** Returns HTTP 429 (Too Many Requests) when limit is exceeded
-- **Headers:** Includes `retryAfter` field indicating seconds until retry is allowed
+- **Response Body:** Includes `retryAfter` field indicating seconds until retry is allowed
 
 ### Internal Metadata Tracking
 All POST requests automatically track internal metadata in a `__inbox` field that is:
