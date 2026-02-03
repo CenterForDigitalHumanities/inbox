@@ -48,6 +48,16 @@ function addIdToObject(obj, id) {
     }
 }
 
+// Helper function to validate motivation
+function isValidMotivation(motivation) {
+    // Must be a non-empty string or a non-empty array of non-empty strings
+    if (typeof motivation === 'string') {
+        return motivation.length > 0
+    }
+    if (Array.isArray(motivation)) {
+        return motivation.length > 0 && motivation.every(item => typeof item === 'string' && item.length > 0)
+    }
+    return false
 // Helper function to get client IP address
 function getClientIp(req) {
     return req.headers['x-forwarded-for']?.split(',')[0].trim() ||
@@ -167,6 +177,13 @@ app.post('/messages', checkRateLimit, async (req, res) => {
         if (!announcement.motivation) {
             return res.status(400).json({
                 error: "Announcements without 'motivation' are not allowed on this server."
+            })
+        }
+
+        // Validation: Check that motivation is a string or array of strings
+        if (!isValidMotivation(announcement.motivation)) {
+            return res.status(400).json({
+                error: "The 'motivation' property must be a string or an array of strings."
             })
         }
 
