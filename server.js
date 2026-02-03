@@ -8,6 +8,8 @@ const MONGODB_URL = process.env.MONGODB_URL ?? 'mongodb://localhost:27017/inbox'
 const MONGODB_COLLECTION = process.env.MONGODB_COLLECTION ?? 'messages'
 const CONTEXT = 'http://www.w3.org/ns/ldp'
 const ID_ROOT = process.env.ID_ROOT ?? 'http://inbox.rerum.io'
+const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000 // 1 hour in milliseconds
+const RATE_LIMIT_MAX_REQUESTS = 10 // Maximum requests per hour per IP
 
 let db = null
 let messagesCollection = null
@@ -37,12 +39,67 @@ app.use((req, res, next) => {
     next()
 })
 
-// Helper function to generate object with @id
+// Helper function to generate object with @id and strip __inbox metadata
 function addIdToObject(obj, id) {
-    const { _id, ...rest } = obj
+    const { _id, __inbox, ...rest } = obj
     return {
         '@id': id,
         ...rest
+    }
+}
+
+// Helper function to get client IP address
+function getClientIp(req) {
+    return req.headers['x-forwarded-for']?.split(',')[0].trim() ||
+           req.headers['x-real-ip'] ||
+           req.socket.remoteAddress ||
+           req.connection.remoteAddress ||
+           'unknown'
+}
+
+// Middleware to check rate limit
+async function checkRateLimit(req, res, next) {
+    try {
+        if (!messagesCollection) {
+            return res.status(503).json({ error: 'Database connection not established' })
+        }
+
+        const clientIp = getClientIp(req)
+        const now = new Date()
+        const windowStart = new Date(now.getTime() - RATE_LIMIT_WINDOW_MS)
+
+        // Find the oldest request from this IP in the current window
+        const oldestRequest = await messagesCollection
+            .find({
+                '__inbox.ip': clientIp,
+                '__inbox.timestamp': { $gte: windowStart }
+            })
+            .sort({ '__inbox.timestamp': 1 })
+            .limit(1)
+            .toArray()
+
+        // Count requests from this IP in the last hour
+        const requestCount = await messagesCollection.countDocuments({
+            '__inbox.ip': clientIp,
+            '__inbox.timestamp': { $gte: windowStart }
+        })
+
+        if (requestCount >= RATE_LIMIT_MAX_REQUESTS) {
+            // Calculate when the oldest request will expire from the window
+            const oldestTimestamp = oldestRequest[0]?.__inbox?.timestamp || windowStart
+            const retryAfter = Math.ceil((oldestTimestamp.getTime() + RATE_LIMIT_WINDOW_MS - now.getTime()) / 1000)
+            
+            return res.status(429).json({
+                error: 'Rate limit exceeded. Please try again later.',
+                retryAfter: Math.max(retryAfter, 1) // Ensure at least 1 second
+            })
+        }
+
+        next()
+    } catch (error) {
+        console.error('Error checking rate limit:', error.message)
+        // Allow request to proceed if rate limit check fails
+        next()
     }
 }
 
@@ -91,7 +148,7 @@ app.get('/messages', async (req, res) => {
 })
 
 // POST /messages - Create a new message
-app.post('/messages', async (req, res) => {
+app.post('/messages', checkRateLimit, async (req, res) => {
     try {
         if (!messagesCollection) {
             return res.status(503).json({ error: 'Database connection not established' })
@@ -119,10 +176,18 @@ app.post('/messages', async (req, res) => {
         // Add timestamp
         announcement.published = new Date().toISOString()
 
+        // Add internal metadata in __inbox field
+        announcement.__inbox = {
+            ip: getClientIp(req),
+            referrer: req.headers.referer || req.headers.referrer || 'direct',
+            userAgent: req.headers['user-agent'] || 'unknown',
+            timestamp: new Date()
+        }
+
         // Insert into MongoDB
         const result = await messagesCollection.insertOne(announcement)
 
-        // Return the created announcement with @id
+        // Return the created announcement with @id (stripping __inbox)
         const returnObj = addIdToObject(
             { ...announcement, _id: result.insertedId },
             `${ID_ROOT}/id/${result.insertedId.toString()}`
