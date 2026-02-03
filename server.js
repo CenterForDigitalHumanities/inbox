@@ -58,6 +58,8 @@ function isValidMotivation(motivation) {
         return motivation.length > 0 && motivation.every(item => typeof item === 'string' && item.length > 0)
     }
     return false
+}
+
 // Helper function to get client IP address
 function getClientIp(req) {
     return req.headers['x-forwarded-for']?.split(',')[0].trim() ||
