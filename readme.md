@@ -7,8 +7,8 @@ The Rerum Inbox is a place for anyone to post and read announcements about any d
 This application is built with:
 - **Node.js** - JavaScript runtime
 - **Express** - Web application framework
-- **Axios** - HTTP client for Firebase communication
-- **Firebase Realtime Database** - Data storage backend
+- **MongoDB** - Document database for data storage
+- **CORS** - Cross-Origin Resource Sharing middleware
 
 ### A Brief History
 The Rerum Inbox is the fruit of a collaboration that began in 2016 to share related IIIF data between institutions. With a generous grant from the IIIF Consortium, Jeffrey Witt (Loyola University Maryland) and Rafael Schwemmer (text & bytes) presented a proof of concept at the 2016 IIIF Conferences in New York using a web standard called WebMentions. At the Vatican 2017 IIIF Conference Jeffrey Witt and Chip Goines produced a second round of demonstrations, this time using an emerging standard called Linked Data Notifications. Following the presentation, new implementations were initiated with Régis Robineau of Biblissima.
@@ -40,6 +40,8 @@ List all messages with optional filtering.
 
 ### POST /messages
 Create a new announcement.
+
+**Rate Limiting:** This endpoint is rate-limited to 10 requests per hour per IP address to prevent abuse and ensure the service is used for human-initiated scholarly contributions.
 
 **Request Body:**
 ```json
@@ -119,6 +121,29 @@ Health check endpoint.
 
 - `PORT` - Server port (default: 3000)
 - `ID_ROOT` - Base URL for generated IDs (default: http://inbox.rerum.io)
+- `MONGODB_URL` - MongoDB connection string (default: mongodb://localhost:27017/inbox)
+- `MONGODB_COLLECTION` - MongoDB collection name (default: messages)
+
+## Rate Limiting and Security
+
+To ensure the Inbox remains a service for human-initiated scholarly contributions, the following protections are in place:
+
+### Rate Limiting
+- **Limit:** 10 POST requests per hour per IP address
+- **Status:** Returns HTTP 429 (Too Many Requests) when limit is exceeded
+- **Headers:** Includes `retryAfter` field indicating seconds until retry is allowed
+
+### Internal Metadata Tracking
+All POST requests automatically track internal metadata in a `__inbox` field that is:
+- **Stored** in MongoDB for rate limiting and auditing purposes
+- **Stripped** from all API responses (GET endpoints)
+- **Contains:**
+  - `ip` - Client IP address (from X-Forwarded-For header or direct connection)
+  - `referrer` - HTTP Referer header or 'direct'
+  - `userAgent` - User-Agent string or 'unknown'
+  - `timestamp` - Creation timestamp
+
+This metadata helps maintain the quality and integrity of the Inbox service while preventing automated abuse.
 
 ## Deployment
 
@@ -136,6 +161,17 @@ The application includes input validation:
 - Requires `motivation` property
 - Automatically adds `@context` if missing
 - Adds `published` timestamp
+
+### Rate Limiting Tests
+Run the included test script to validate rate limiting:
+```bash
+./test-rate-limiting.sh
+```
+
+This script will:
+- Send multiple POST requests to test rate limiting
+- Verify that requests are blocked after the hourly limit
+- Confirm that internal metadata is tracked properly
 
 ## License
 
