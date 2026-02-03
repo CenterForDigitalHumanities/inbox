@@ -1,0 +1,97 @@
+name: Use Case Proposal
+description: Propose a new use case or extension for LDN Inboxes in IIIF
+title: "[Use Case]: "
+labels: ["use-case", "enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to propose a new use case for LDN Inboxes in IIIF! 
+        Please provide as much detail as possible to help us understand and evaluate your proposal.
+
+  - type: input
+    id: use-case-title
+    attributes:
+      label: Use Case Title
+      description: A brief, descriptive title for this use case
+      placeholder: e.g., "Crowdsourced Transcription Annotations"
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: Provide a detailed description of the use case
+      placeholder: Describe the problem this use case solves and how it would be used
+    validations:
+      required: true
+
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope
+      description: Define the scope of this use case
+      placeholder: |
+        What does this use case cover?
+        - Target audience (scholars, institutions, etc.)
+        - Types of resources affected (manifests, canvases, ranges, etc.)
+        - Expected interactions or workflows
+    validations:
+      required: true
+
+  - type: textarea
+    id: schema
+    attributes:
+      label: Expected Minimum Schema
+      description: Define the minimum required schema for this use case
+      placeholder: |
+        Provide JSON-LD or structured format example:
+        ```json
+        {
+          "@type": "Announce",
+          "motivation": "example:motivation",
+          "object": "...",
+          "target": "...",
+          "actor": {...}
+        }
+        ```
+      render: json
+    validations:
+      required: true
+
+  - type: textarea
+    id: indexable-values
+    attributes:
+      label: Indexable Values
+      description: List the fields that should be searchable/filterable
+      placeholder: |
+        - target (URL of the IIIF resource)
+        - motivation (e.g., "iiif:supplement:range")
+        - type (e.g., "Announce", "Create")
+        - actor.id (identity of the announcing party)
+        - published (timestamp)
+        - Custom fields: ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: examples
+    attributes:
+      label: Links to Examples
+      description: Provide links to existing examples, implementations, or related resources
+      placeholder: |
+        - Similar implementation: https://example.org/implementation
+        - Related IIIF specification: https://iiif.io/api/...
+        - Reference project: https://github.com/...
+    validations:
+      required: false
+
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional Context
+      description: Any other context, screenshots, or information that would be helpful
+      placeholder: Add any additional information that might help us understand this use case better
+    validations:
+      required: false
