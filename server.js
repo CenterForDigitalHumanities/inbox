@@ -41,12 +41,12 @@ function addIdToObject(obj, id) {
 
 // Helper function to validate motivation
 function isValidMotivation(motivation) {
-    // Must be a string or an array of strings
+    // Must be a non-empty string or a non-empty array of non-empty strings
     if (typeof motivation === 'string') {
-        return true
+        return motivation.length > 0
     }
     if (Array.isArray(motivation)) {
-        return motivation.every(item => typeof item === 'string')
+        return motivation.length > 0 && motivation.every(item => typeof item === 'string' && item.length > 0)
     }
     return false
 }
