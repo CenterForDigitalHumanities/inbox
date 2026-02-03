@@ -5,8 +5,8 @@
   "description": "The Rerum Inbox is a place for anyone to post and read announcements about any digital resource published on the Internet. A strong supporter of the IIIF standard, it is the sc:Manifest objects for which this has been created. The millions of images made available by libraries, museums, universities, and others throughout the world are now enriched by the linked knowledge of a planet full of scholars and researchers. Only the most relevant and intentional notes are intended for this announcement inbox, so the information is more immediately useful than aggregations that simply crawl the graph of Linked Data looking for relationships without discrimination.",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js",
-    "dev": "node --watch server.js",
+    "start": "node --env-file=.env server.js",
+    "dev": "node --watch --env-file=.env server.js",
     "test": "echo 'No tests specified' && exit 0"
   },
   "keywords": [],
