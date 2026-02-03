@@ -1,0 +1,20 @@
+{
+  "name": "inbox",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "The Rerum Inbox is a place for anyone to post and read announcements about any digital resource published on the Internet. A strong supporter of the IIIF standard, it is the sc:Manifest objects for which this has been created. The millions of images made available by libraries, museums, universities, and others throughout the world are now enriched by the linked knowledge of a planet full of scholars and researchers. Only the most relevant and intentional notes are intended for this announcement inbox, so the information is more immediately useful than aggregations that simply crawl the graph of Linked Data looking for relationships without discrimination.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "test": "echo 'No tests specified' && exit 0"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "cors": "^2.8.6",
+    "express": "^5.2.1",
+    "mongodb": "^6.3.0"
+  }
+}
