@@ -33,11 +33,7 @@ app.use(express.json({ type: ['application/json', 'application/ld+json'] }))
 
 // Set Content-Type to application/ld+json for all JSON responses
 app.use((req, res, next) => {
-    const originalJson = res.json
-    res.json = function(data) {
-        res.type('application/ld+json')
-        return originalJson.call(this, data)
-    }
+    res.type('application/ld+json')
     next()
 })
 
