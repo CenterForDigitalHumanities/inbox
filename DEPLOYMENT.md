@@ -1,24 +1,43 @@
 # Deployment Configuration
 
-## Repository Secrets Required
+## CI/CD Pipeline
+
+This repository uses GitHub Actions for automated testing and deployment. The workflow is defined in `.github/workflows/nodejs-cicd.yml`.
+
+### Workflow Overview
+
+- **Trigger**: Push to `main` branch or pull requests to `development` branch
+- **Test Job**: Runs on `ubuntu-latest`, tests with Node.js 24
+- **Deploy Job**: Runs on specified runner after tests pass
+
+### Repository Secrets Required
 
 The following secrets must be configured in GitHub repository settings (Settings > Secrets and variables > Actions):
 
-### Required Secrets
+#### GitHub Actions Runner Secrets (for DEV/PRD deployment)
+
+1. **TPEN_EMAIL_CC** (Optional)
+   - Description: Email address to CC on notifications
+   - Format: Email address
+   - Used by: CI/CD workflow for notifications
+
+#### SSH Deployment Secrets (if using SSH deployment)
+
+If the deploy job uses SSH to deploy to remote servers, configure:
 
 1. **SSH_PRIVATE_KEY**
-   - Description: Private SSH key for deploying to the TPEN-Services machine
+   - Description: Private SSH key for deploying to the target machine
    - Format: Full SSH private key (RSA or ED25519)
    - Example generation: `ssh-keygen -t ed25519 -C "github-actions@inbox"`
    - The corresponding public key must be added to `~/.ssh/authorized_keys` on the target server
 
 2. **SSH_HOST**
-   - Description: Hostname or IP address of the TPEN-Services machine
+   - Description: Hostname or IP address of the target deployment machine
    - Format: Hostname or IP address
    - Example: `tpen-services.example.com` or `192.168.1.100`
 
 3. **SSH_USER**
-   - Description: Username for SSH connection to the TPEN-Services machine
+   - Description: Username for SSH connection to the target machine
    - Format: Unix username
    - Example: `deploy` or `tpen`
 
@@ -28,11 +47,113 @@ The following secrets must be configured in GitHub repository settings (Settings
    - Example: `/opt/inbox` or `/home/tpen/apps/inbox`
    - Note: This directory will be created if it doesn't exist
 
+## Environment Variables
+
+The application supports the following environment variables:
+
+- **PORT**: Port number for the application (default: 3000)
+- **ID_ROOT**: Base URL for generated IDs (default: `http://inbox.rerum.io`)
+- **NODE_ENV**: Runtime environment (development or production, default: production)
+
+### Configure in PM2
+
+Configure environment variables in PM2 ecosystem file or systemd service:
+
+#### PM2 Ecosystem File
+
+Create `ecosystem.config.js` in the deployment directory:
+
+```javascript
+module.exports = {
+  apps: [{
+    name: 'inbox',
+    script: './server.js',
+    instances: 1,
+    autorestart: true,
+    watch: false,
+    max_memory_restart: '1G',
+    env: {
+      NODE_ENV: 'production',
+      PORT: 3000,
+      ID_ROOT: 'http://inbox.rerum.io'
+    }
+  }]
+};
+```
+
+Start with: `pm2 start ecosystem.config.js`
+
+## Automated Deployment via GitHub Actions
+
+The CI/CD pipeline automatically:
+
+1. **Tests** the application on every push to `main` and pull requests to `development`
+2. **Deploys** to the configured runners after tests pass
+3. **Validates** the deployment by waiting for the service to be ready
+
+### Setting Up GitHub Actions Runners
+
+To deploy to your DEV and PRD servers, you need to set up self-hosted GitHub Actions runners:
+
+1. **On the DEV server**:
+   ```bash
+   # Follow GitHub Actions runner setup documentation
+   # https://docs.github.com/en/actions/hosting-your-own-runners/managing-self-hosted-runners
+   ```
+
+2. **On the PRD server**:
+   ```bash
+   # Same setup as DEV
+   ```
+
+3. **Configure runner labels** for DEV and PRD environments
+
+4. **Update `.github/workflows/nodejs-cicd.yml`** to specify runner labels:
+   ```yaml
+   deploy-dev:
+     runs-on: [self-hosted, dev-runner]
+     
+   deploy-prd:
+     runs-on: [self-hosted, prd-runner]
+   ```
+
+## Manual Deployment Steps
+
+If deploying manually without GitHub Actions:
+
+1. Clone or copy the repository to the server
+   ```bash
+   cd /opt
+   git clone https://github.com/CenterForDigitalHumanities/inbox.git
+   cd inbox
+   ```
+
+2. Install dependencies
+   ```bash
+   npm ci --production
+   ```
+
+3. Start with PM2
+   ```bash
+   pm2 start server.js --name inbox
+   pm2 save
+   pm2 startup  # Configure PM2 to start on boot
+   ```
+
+4. Configure Apache/Nginx as described below
+
+5. Restart the web server
+   ```bash
+   sudo systemctl restart apache2
+   # or
+   sudo systemctl restart nginx
+   ```
+
 ## Server Requirements
 
-The TPEN-Services machine must have:
+The deployment server must have:
 
-1. **Node.js** (v18 or later)
+1. **Node.js** (v18 or later, v20+ recommended)
    ```bash
    curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
    sudo apt-get install -y nodejs
@@ -43,16 +164,16 @@ The TPEN-Services machine must have:
    sudo npm install -g pm2
    ```
 
-3. **SSH Access**
+3. **SSH Access** (if using SSH deployment)
    - SSH daemon running
    - Public key authentication configured
    - Deploy user has permission to write to DEPLOY_PATH
 
-## Apache Configuration
+## Application Port
 
-The application runs on port 3000 by default. Apache should be configured to proxy requests to the Node.js application.
+The application runs on port 3000 by default. Configure your reverse proxy (Apache or Nginx) to route traffic to this port.
 
-### Apache Proxy Configuration
+## Apache Proxy Configuration
 
 Add the following configuration to your Apache virtual host configuration (typically in `/etc/apache2/sites-available/`):
 
@@ -92,12 +213,14 @@ Add the following configuration to your Apache virtual host configuration (typic
 - Application ran on Tomcat (typically port 8080)
 - Context path was defined in `web/META-INF/context.xml`
 - Required Tomcat-specific deployment descriptors
+- Deployed via GitHub Actions without self-hosted runners
 
 **New Node.js Configuration:**
 - Application runs directly on port 3000
 - No context.xml or deployment descriptors needed
 - Simpler proxy configuration
 - Built-in CORS support in application
+- Deployed via GitHub Actions with self-hosted runners on DEV/PRD servers
 
 ### Enable Apache Modules
 
@@ -135,71 +258,6 @@ server {
     }
 }
 ```
-
-## Environment Variables
-
-The application supports the following environment variables:
-
-- **PORT**: Port number for the application (default: 3000)
-- **ID_ROOT**: Base URL for generated IDs (default: `http://inbox.rerum.io`)
-
-Configure these in PM2 ecosystem file or systemd service:
-
-### PM2 Ecosystem File
-
-Create `ecosystem.config.js` in the deployment directory:
-
-```javascript
-module.exports = {
-  apps: [{
-    name: 'inbox',
-    script: './server.js',
-    instances: 1,
-    autorestart: true,
-    watch: false,
-    max_memory_restart: '1G',
-    env: {
-      NODE_ENV: 'production',
-      PORT: 3000,
-      ID_ROOT: 'http://inbox.rerum.io'
-    }
-  }]
-};
-```
-
-Start with: `pm2 start ecosystem.config.js`
-
-## Manual Deployment Steps
-
-If deploying manually without GitHub Actions:
-
-1. Clone or copy the repository to the server
-   ```bash
-   cd /opt
-   git clone https://github.com/CenterForDigitalHumanities/inbox.git
-   cd inbox
-   ```
-
-2. Install dependencies
-   ```bash
-   npm ci --production
-   ```
-
-3. Start with PM2
-   ```bash
-   pm2 start server.js --name inbox
-   pm2 save
-   pm2 startup  # Configure PM2 to start on boot
-   ```
-
-4. Configure Apache/Nginx as described above
-
-5. Restart the web server
-   ```bash
-   sudo systemctl restart apache2
-   # or
-   sudo systemctl restart nginx
-   ```
 
 ## Health Check
 
@@ -242,7 +300,8 @@ pm2 monit
 - Check Apache error logs: `sudo tail -f /var/log/apache2/error.log`
 - Verify the app is running: `curl http://localhost:3000/health`
 
-### Firebase connection issues
-- Verify network connectivity to Firebase
-- Check firewall rules
-- Review application logs for detailed error messages
+### CI/CD Pipeline Issues
+- Check runner status: Repository Settings > Actions > Runners
+- Verify runner has Node.js 24 installed
+- Review workflow logs in GitHub Actions tab
+- Ensure deploy secrets are correctly configured
