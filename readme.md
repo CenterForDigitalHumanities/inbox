@@ -27,12 +27,40 @@ This inbox is compliant with the [Linked Data Notifications (LDN)](https://www.w
 ## API Endpoints
 
 ### GET /messages
-List all messages with optional filtering.
+List all messages with optional filtering, pagination, and date constraints.
+
+**Default Behavior (no query parameters):**
+- Returns messages from the past week
+- Sorted by most recent first
+- Limited to 20 messages
 
 **Query Parameters:**
-- `target` - Filter by target URL
+- `target` - Filter by target URL (when provided, default limit changes to 100)
 - `type` - Filter by message type
 - `motivation` - Filter by motivation
+- `since` - Filter messages newer than this datetime (ISO 8601 format)
+  - When provided, overrides the default "past week" filter
+  - Takes priority over `limit` when both are specified
+- `limit` - Maximum number of messages to return
+  - Default: 20 (no parameters)
+  - Default: 100 (when `target` is specified)
+  - Can be combined with `skip` for pagination
+- `skip` - Number of messages to skip (requires `limit` for pagination)
+
+**Sorting:**
+All results are sorted by `published` date, most recent first.
+
+**Pagination Example:**
+```bash
+# Get first page
+GET /messages?limit=50
+
+# Get second page
+GET /messages?limit=50&skip=50
+
+# Get messages from past week with pagination
+GET /messages?since=2024-01-22T00:00:00Z&limit=50&skip=100
+```
 
 **Response:**
 ```json
