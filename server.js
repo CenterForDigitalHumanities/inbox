@@ -131,13 +131,53 @@ app.get('/messages', async (req, res) => {
             return res.status(503).json({ error: 'Database connection not established' })
         }
 
-        const { target = '', type = '', motivation = '' } = req.query
+        const { target = '', type = '', motivation = '', since, limit, skip } = req.query
 
-        // Build MongoDB query
+        // Build MongoDB query for filtering
         const query = buildMongoQuery(target, type, motivation)
 
-        // Fetch from MongoDB
-        const messages = await messagesCollection.find(query).toArray()
+        // Add since filter if provided
+        if (since) {
+            const sinceDate = new Date(since)
+            if (!isNaN(sinceDate.getTime())) {
+                query.published = { $gte: sinceDate.toISOString() }
+            }
+        } else if (!target) {
+            // Default: only messages from the past week when no target is specified
+            const oneWeekAgo = new Date()
+            oneWeekAgo.setDate(oneWeekAgo.getDate() - 7)
+            query.published = { $gte: oneWeekAgo.toISOString() }
+        }
+
+        // Determine limit value
+        let limitValue
+        if (limit) {
+            limitValue = parseInt(limit, 10)
+            if (isNaN(limitValue) || limitValue < 1) {
+                limitValue = 20 // fallback to default
+            }
+        } else if (target) {
+            limitValue = 100 // default when target is provided
+        } else {
+            limitValue = 20 // default when no target
+        }
+
+        // Determine skip value
+        let skipValue = 0
+        if (skip) {
+            skipValue = parseInt(skip, 10)
+            if (isNaN(skipValue) || skipValue < 0) {
+                skipValue = 0
+            }
+        }
+
+        // Fetch from MongoDB with sorting (most recent first), limit, and skip
+        const messages = await messagesCollection
+            .find(query)
+            .sort({ published: -1 })
+            .skip(skipValue)
+            .limit(limitValue)
+            .toArray()
 
         // Convert to array with @id added
         const formattedMessages = messages.map(msg =>
