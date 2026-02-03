@@ -1,7 +1,7 @@
 blank_issues_enabled: true
 contact_links:
   - name: Documentation
-    url: https://centerfordigitalhumanities.github.io/inbox-docs/
+    url: https://inbox-docs.rerum.io/
     about: Read the documentation for more information about LDN Inboxes in IIIF
   - name: IIIF Community
     url: https://iiif.io/community/
