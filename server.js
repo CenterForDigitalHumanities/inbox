@@ -39,6 +39,18 @@ function addIdToObject(obj, id) {
     }
 }
 
+// Helper function to validate motivation
+function isValidMotivation(motivation) {
+    // Must be a string or an array of strings
+    if (typeof motivation === 'string') {
+        return true
+    }
+    if (Array.isArray(motivation)) {
+        return motivation.every(item => typeof item === 'string')
+    }
+    return false
+}
+
 // Helper function to build MongoDB query
 function buildMongoQuery(target, type, motivation) {
     const query = {}
@@ -103,6 +115,13 @@ app.post('/messages', async (req, res) => {
         if (!announcement.motivation) {
             return res.status(400).json({
                 error: "Announcements without 'motivation' are not allowed on this server."
+            })
+        }
+
+        // Validation: Check that motivation is a string or array of strings
+        if (!isValidMotivation(announcement.motivation)) {
+            return res.status(400).json({
+                error: "The 'motivation' property must be a string or an array of strings."
             })
         }
 
