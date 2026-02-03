@@ -28,7 +28,18 @@ async function connectToDatabase() {
 
 // Middleware
 app.use(cors())
-app.use(express.json())
+// Accept both application/json and application/ld+json for LDN compliance
+app.use(express.json({ type: ['application/json', 'application/ld+json'] }))
+
+// Set Content-Type to application/ld+json for all JSON responses
+app.use((req, res, next) => {
+    const originalJson = res.json
+    res.json = function(data) {
+        res.type('application/ld+json')
+        return originalJson.call(this, data)
+    }
+    next()
+})
 
 // Helper function to generate object with @id
 function addIdToObject(obj, id) {
