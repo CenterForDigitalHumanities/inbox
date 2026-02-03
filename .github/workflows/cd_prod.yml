@@ -7,13 +7,13 @@ jobs:
     runs-on: ubuntu-latest
     environment: production
     steps:
-      - uses: actions/checkout@master
+      - uses: actions/checkout@main
       - name: Setup Node.js
-        uses: actions/setup-node@master
+        uses: actions/setup-node@main
         with:
           node-version: "24"
       - name: Cache node modules
-        uses: actions/cache@master
+        uses: actions/cache@main
         with:
           path: ~/.npm
           key: ${{ runner.os }}-build-cache-node-modules-${{ hashFiles('**/package-lock.json') }}
@@ -35,7 +35,7 @@ jobs:
           - vlcdhprdp01
     runs-on: ${{ matrix.machines }}
     steps:
-      - uses: actions/checkout@master
+      - uses: actions/checkout@main
       - name: Deploy the app on the server
         run: |
           if [[ ! -e /srv/node/logs/inbox.txt ]]; then
