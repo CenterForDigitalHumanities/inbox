@@ -1,0 +1,56 @@
+name: Deploy Inbox to Production
+on:
+  push:
+    branches: main
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@master
+      - name: Setup Node.js
+        uses: actions/setup-node@master
+        with:
+          node-version: "24"
+      - name: Cache node modules
+        uses: actions/cache@master
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-build-cache-node-modules-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-build-cache-node-modules-
+            ${{ runner.os }}-build-
+            ${{ runner.os }}-
+      - name: Install dependencies and run tests
+        run: |
+          npm install
+          npm test
+
+  deploy:
+    needs: test
+    environment: production
+    strategy:
+      matrix:
+        machines:
+          - vlcdhprdp01
+    runs-on: ${{ matrix.machines }}
+    steps:
+      - uses: actions/checkout@master
+      - name: Deploy the app on the server
+        run: |
+          if [[ ! -e /srv/node/logs/inbox.txt ]]; then
+              mkdir -p /srv/node/logs
+              touch /srv/node/logs/inbox.txt
+          fi
+          cd /srv/node/inbox/
+          pm2 delete inbox || true
+          git stash
+          git checkout main
+          git pull
+          npm install
+          pm2 start ecosystem.config.js --env production --cwd .
+      - name: Wait for service to be ready
+        run: sleep 5
+      - name: Run health check
+        run: |
+          curl -f http://localhost:3000/health || exit 1
